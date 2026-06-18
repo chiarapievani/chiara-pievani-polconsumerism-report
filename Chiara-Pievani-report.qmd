@@ -1,7 +1,7 @@
 ---
 title: "Political consumerism: understanding individual propensity to boycott"
 author: "Chiara Pievani - ID 84347A"
-format: pdf
+format: html
 editor: visual
 ---
 
@@ -11,10 +11,10 @@ editor: visual
 library(tidyverse)
 library(haven)
 library(here)
-library(psych)
+library(lme4)
+library(sjPlot)
 
 ```
-
 
 ::: {style="text-align: center;"}
 *What factors are associated with individual’s likelihood of boycotting products as a form of political dissent across European countries?*
@@ -40,7 +40,7 @@ With the independent variables chosen, I want to investigate how both political 
 
 The independent variables considered are then:
 
-- Political interest (*polint*), measured on a scale 1 - 4; for interpretation purposes, the scale has been shifted, so that 1 = "Not at all interested" and 4 = "Very interested;
+- Political interest (*polintr*), measured on a scale 1 - 4; for interpretation purposes, the scale has been reversed, so that 1 = "Not at all interested" and 4 = "Very interested;
 
 - Taken part in a public demonstration in the last 12 months (*pbldmna*), which is binary and 0 = No, 1 = Yes;
 
@@ -48,7 +48,7 @@ The independent variables considered are then:
 
 - Satisfaction with national government (*stfgov*), measured on a 0 - 10 scale, in which 0 = "Extremely dissatisfied" and 10 = "Extremely satisfied";
 
-- Self placement on left - right scale (*lrscale*) measured on a 0 - 10 scale. Compared to the original variable in the ESS dataset, the scale has been shifted, so that 0 = "Extreme right" and 10 = "Extreme left": this has been done to facilitate and make more straightforward the interpretation of the interaction stated in the previous section under H3;
+- Self placement on left - right scale (*lrscale*) measured on a 0 - 10 scale. Compared to the original variable in the ESS dataset, the scale has been reversed, so that 0 = "Extreme right" and 10 = "Extreme left": this has been done to facilitate and make more straightforward the interpretation of the interaction stated in the previous section under H3;
 
 - Worry about climate change (*wrclmch*) measured on a scale from 1 - 5 and 1 = "Not at all worried", while 5 = "Extremely worried";
 
@@ -62,89 +62,78 @@ Other relevant factors included in the model used as control variables to furthe
 
 - Gender (*gndr*), binary where 0 = "Male" and 1 = "Female"
 
-- Residence (rsdnc), binary where 0 = "Rural residence" and 1 = "Urban residence". This variable is a modification of the variable *domicil* of the ESS dataset: those who said to live in either a big city, the suburbs of a big city or a town have been assigned to the category "Urban residence", while those who said to live in a country village or a home in the countryside have been assigned to the category "Rural residence".
+- Residence (*rsdnc*), binary where 0 = "Rural residence" and 1 = "Urban residence". This variable is a modification of the variable *domicil* of the ESS dataset: those who said to live in either a big city, the suburbs of a big city or a town have been assigned to the category "Urban residence", while those who said to live in a country village or a home in the countryside have been assigned to the category "Rural residence".
+
+- Country (*cntry*), used as a clustering variable to see if the hypothesized relationship changes across different countries.
 
 All continuous variables have been standardized.
 
 ### Operationalization
 
-Some of the variables chosen for the analysis capture concepts close to one another. To simplify the interpretation of the model, these variables were operationalized into additive indices. 
+Some of the variables chosen for the analysis capture concepts close to one another. To simplify the interpretation of the model, these variables were operationalized into additive indices.
 
-Worry about climate change (*wrclmch*) and personal responsibility to reduce climate change (*ccrdprs*) presented a correlation of 0.46, which I considered enough to say that these two variables could be measuring a common latent dimension, that I called "Climate concern" (*clmcnrn*). 
-To build the index, the two original variables were first standardized, since they were measured on different scales, and then averaged.
+Worry about climate change (*wrclmch*) and personal responsibility to reduce climate change (*ccrdprs*) presented a correlation of 0.46, which I considered enough to say that these two variables could be measuring a common latent dimension, that I called "Climate concern" (*clmcnrn*). To build the index, the two original variables were first standardized, since they were measured on different scales, and then averaged.
 
 Trust in politicians (*trstplt*), trust in parliament (*trstprl*) and satisfaction with national government (*stfgov*) present correlations that range between 0.58 and 0.75, high enough to suggest that the three could be explaining a common latent factor. To confirm this, Eigen values have been calculated, and they were coherent with the conclusion taken by looking at the correlation plot, suggesting that only one factor should be retained to explain these three variables. Lastly, also in this case I built an additive index of the three, called "Political support" (*pltsprt*)
 
-```{r data cleaning and operationalization}
+```{r processed data import}
 #| include: false
 
-ess <- read_stata(here("data", "raw", "ESS_round11.dta"))
+data <- read.csv(here("data", "processed", "clean_data.CSV"))
 
-data <- ess %>% 
-  select (idno, cntry,
-          
-          bctprd, #dependent variable
-          
-          polintr, pbldmna,  #independent variables - political
-          trstplt, trstprl, stfgov,  #latent factor - political support
-          lrscale,
-          
-          wrclmch, ccrdprs,  #independent variables - climate concern
-          
-          agea, eduyrs,      #control variables
-          gndr, domicil) %>% 
-  drop_na () %>% 
-  mutate (
-    z_age = scale(agea) [,1],     #standardization of continuous variables
-    z_edu = scale(eduyrs) [,1],
-    rsdnc = factor(ifelse(domicil <= 3, 1, 0)),  #dummy variable for 1 = urban residence, 0 = rural residence
-    bctprd = factor(if_else(bctprd == 1, 1, 0)), #recoding of levels -> 0 = No, 1 = Yes
-    pbldmna = factor (if_else(pbldmna == 1, 1, 0)), #recoding of levels -> 0 = No, 1 = Yes
-    gndr = factor(ifelse(gndr == 1, 0, 1)) #recoding of levels -> 0 = Male, 1 = Female
-  )
-
-
-# OPERATIONALIZATION ----------------------------------------
-## Climate concern index ------------------------------------
-
-cor_climate <- cor(scale(data$wrclmch),
-                   scale(data$ccrdprs))
-
-# correlation = 0.46
-
-data <- data %>% 
-  mutate(
-    clmcnrn = (scale(data$wrclmch) + scale(data$ccrdprs)) / 2
-  )
-
-## Factor analysis - political support index ---------------
-
-pol_data <- data %>% 
-  select(
-    trstplt,
-    trstprl,
-    stfgov
-  )
-
-cor_pol <- cor(pol_data)
-
-### Eigen values evaluation - n of dimensions to retain -----
-
-eigen_pol <- eigen(cor_pol) [[1]]
-
-
-### Index building ------------------------------------------
-
-data <- data %>% 
-  mutate(
-    pltsprt = (trstplt + trstprl + stfgov) / 3
-  )
+# for full code on data cleaning see script 01_data_prep.R
 
 ```
 
 ## Model choice and statistical justification
 
+Since the dependent variable (*bctprd*) is binary, a linear regression model would not be coherent. To ensure that the predicted probabilities stay bounded between 0 and 1, the model to choose is the logistic one.
+
+Although, to answer the research question, a multivariate logistic regression model might not be good enough to unveil the full relationship between boycott, politics and environmental concern.
+
+The ESS dataset has a hierarchical structure, hence it is possible to not only consider individuals as single units but also to consider them as nested within countries. This because people living in the same country share the same institutional and cultural background, and in cases like political dissent, this common context is likely to influence their attitude towards it.
+
+To assess whether the clustering should be taken into account to better explain the relationship described previously, an explorative empty logistic multilevel model with random intercepts for countries was estimated. This allows to see the Intra-Class Correlation, hence the variation explained at the group level.
+
+```{r empty model}
+#| echo: false
+
+empty_model <- glmer(
+  bctprd ~ 1 + (1 | cntry),
+  data = data,
+  family = binomial(link = "logit")
+)
+
+table_ICC <- tab_model(empty_model,
+                  title = "Table 1. Empty logistic multilevel model predicting boycott participation")
+
+table_ICC
+
+```
+
+The table above reports an ICC of 18%, which is the portion of variance explained by country-level differences.
+
+This confirms that not considering the differences brought by countries to the model would affect the validity of the results.
+
+Eventually, the relationship that this analysis will attempt to look further into is:
+
+`bctprd  ~ polintr + pbldmna + pltsprt + lrscale * clmcnrn + (1 + clmcnrn|country) + z_age + z_edu + gndr +  rsdnc`
+
+This includes then indicators for political engagement and orientation and environmental concern. An interaction term between ideological self-placement and climate concern is included to see whether the relationship between environmental concern and participation in boycotts changes across the left - right scale.
+
+Moreover, both the baseline and the association between climate concern and participation in boycotts are allowed to vary across countries in the multilevel term of the model.
+
+Age, education, gender and place of residence are included as control variables.
+
 ## Results
+
+Since there are many predictors to consider, for better interpretation purposes and better assessment of the contribution of different sets of variables, the analysis develops incrementally.
+
+Political and climate related variables are first considered separately to see the contributions of each context.
+
+Then, a full model with all explanatory variables is estimated, with all control variables included.
+
+Finally, the interaction between ideological placement and climate concern and the random slope for climate concern are included to explore whether the effect of environmental attitudes varies across both individuals (based on their political orientation) and countries.
 
 ## Interpretation and substantive insights
 
@@ -153,3 +142,13 @@ data <- data %>%
 ## Bibliography
 
 ## AI disclosure
+
+Artificial Intelligence has been used as a coding support to:
+
+- Reverse the scaling of some of the variables;
+
+- Compute the eigenvalues for the operationalization;
+
+- Solve issues with the saving of the processed data file;
+
+- Commands for better outcomes in the rendered file.

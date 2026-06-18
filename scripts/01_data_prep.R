@@ -29,7 +29,7 @@ data <- ess %>%
     
     z_age = scale(agea) [,1],     #standardization of continuous variables
     z_edu = scale(eduyrs) [,1],
-    urban = factor(ifelse(domicil <= 3, 1, 0)),  #dummy variable for 1 = urban residence, 0 = rural residence
+    rsdnc = factor(ifelse(domicil <= 3, 1, 0)),  #dummy variable for 1 = urban residence, 0 = rural residence
     gndr = factor(ifelse(gndr == 1, 0, 1)) #recoding of levels -> 0 = Male, 1 = Female
   )
 
@@ -71,4 +71,4 @@ data <- data %>%
 
 
 #SAVING PROCESSED DATA IN A NEW FILE
-write.csv(data, "data/processed/processed_data.csv", row.names = FALSE)
+write.csv(data, "data/processed/clean_data.csv", row.names = FALSE)
