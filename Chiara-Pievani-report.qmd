@@ -5,18 +5,142 @@ format: pdf
 editor: visual
 ---
 
+```{r setup}
+#| include: false
+
+library(tidyverse)
+library(haven)
+library(here)
+library(psych)
+
+```
+
+
 ::: {style="text-align: center;"}
 *What factors are associated with individual’s likelihood of boycotting products as a form of political dissent across European countries?*
 :::
 
+H1: Individuals with higher levels of political engagement are more likely to consider boycott as a form of political participation.
+
+H2: Individuals who think to have a higher impact on reducing climate change will be more likely to participate in boycotts.
+
+H3: Climate concern is expected to have a higher association with boycotting among people that, on the ideology scale, place themselves on the left.
 
 ## Data and variable operationalization
 
-The dataset used is the ESS Round 11 Multilevel dataset. In its original format, it contains over forty-six thousand observations across around nine thousand three hundred variables that collect data both at the individual and regional, national level. 
+The dataset used is the ESS Round 11 Multilevel dataset. In its original format, it contains over forty-six thousand observations across around nine thousand three hundred variables that collect data both at the individual and regional, national level.
 
-To try better understand the relationship I have described in the previous section, I have selected fifteen of these variables.
+To avoid any kind of extrapolation, only complete observations have been considered for this analysis. Considering it is a large dataset, this decision still left me with over thirty thousand respondents to consider.
+
+To try better understand the relationship I have described in the previous section, I have selected fifteen of the variables included in the dataset.
+
+The dependent variable is "Boycotted certain products in the last 12 months" (*bctprd*): it is a binary value (No = 0, Yes = 1).
+
+With the independent variables chosen, I want to investigate how both political ideology and concern for climate change are related with the propensity to boycott.
+
+The independent variables considered are then:
+
+- Political interest (*polint*), measured on a scale 1 - 4; for interpretation purposes, the scale has been shifted, so that 1 = "Not at all interested" and 4 = "Very interested;
+
+- Taken part in a public demonstration in the last 12 months (*pbldmna*), which is binary and 0 = No, 1 = Yes;
+
+- Trust in politicians (*trstplt*) and Trust in parliament (*trstprl*), both measured on a scale 0 - 10, in which 0 = "No trust at all" and 10 = "Complete trust";
+
+- Satisfaction with national government (*stfgov*), measured on a 0 - 10 scale, in which 0 = "Extremely dissatisfied" and 10 = "Extremely satisfied";
+
+- Self placement on left - right scale (*lrscale*) measured on a 0 - 10 scale. Compared to the original variable in the ESS dataset, the scale has been shifted, so that 0 = "Extreme right" and 10 = "Extreme left": this has been done to facilitate and make more straightforward the interpretation of the interaction stated in the previous section under H3;
+
+- Worry about climate change (*wrclmch*) measured on a scale from 1 - 5 and 1 = "Not at all worried", while 5 = "Extremely worried";
+
+- Personal responsibility to reduce climate change (*ccrdprs*), measured on a scale from 0 - 10, in which 0 = "Not at all" and 10 = "A great deal".
+
+Other relevant factors included in the model used as control variables to further investigate the relationship between the dependent and the independent variables are:
+
+- Age (*agea*), continuous;
+
+- Years of education (*eduyrs*), continuous;
+
+- Gender (*gndr*), binary where 0 = "Male" and 1 = "Female"
+
+- Residence (rsdnc), binary where 0 = "Rural residence" and 1 = "Urban residence". This variable is a modification of the variable *domicil* of the ESS dataset: those who said to live in either a big city, the suburbs of a big city or a town have been assigned to the category "Urban residence", while those who said to live in a country village or a home in the countryside have been assigned to the category "Rural residence".
+
+All continuous variables have been standardized.
+
+### Operationalization
+
+Some of the variables chosen for the analysis capture concepts close to one another. To simplify the interpretation of the model, these variables were operationalized into additive indices. 
+
+Worry about climate change (*wrclmch*) and personal responsibility to reduce climate change (*ccrdprs*) presented a correlation of 0.46, which I considered enough to say that these two variables could be measuring a common latent dimension, that I called "Climate concern" (*clmcnrn*). 
+To build the index, the two original variables were first standardized, since they were measured on different scales, and then averaged.
+
+Trust in politicians (*trstplt*), trust in parliament (*trstprl*) and satisfaction with national government (*stfgov*) present correlations that range between 0.58 and 0.75, high enough to suggest that the three could be explaining a common latent factor. To confirm this, Eigen values have been calculated, and they were coherent with the conclusion taken by looking at the correlation plot, suggesting that only one factor should be retained to explain these three variables. Lastly, also in this case I built an additive index of the three, called "Political support" (*pltsprt*)
+
+```{r data cleaning and operationalization}
+#| include: false
+
+ess <- read_stata(here("data", "raw", "ESS_round11.dta"))
+
+data <- ess %>% 
+  select (idno, cntry,
+          
+          bctprd, #dependent variable
+          
+          polintr, pbldmna,  #independent variables - political
+          trstplt, trstprl, stfgov,  #latent factor - political support
+          lrscale,
+          
+          wrclmch, ccrdprs,  #independent variables - climate concern
+          
+          agea, eduyrs,      #control variables
+          gndr, domicil) %>% 
+  drop_na () %>% 
+  mutate (
+    z_age = scale(agea) [,1],     #standardization of continuous variables
+    z_edu = scale(eduyrs) [,1],
+    rsdnc = factor(ifelse(domicil <= 3, 1, 0)),  #dummy variable for 1 = urban residence, 0 = rural residence
+    bctprd = factor(if_else(bctprd == 1, 1, 0)), #recoding of levels -> 0 = No, 1 = Yes
+    pbldmna = factor (if_else(pbldmna == 1, 1, 0)), #recoding of levels -> 0 = No, 1 = Yes
+    gndr = factor(ifelse(gndr == 1, 0, 1)) #recoding of levels -> 0 = Male, 1 = Female
+  )
 
 
+# OPERATIONALIZATION ----------------------------------------
+## Climate concern index ------------------------------------
+
+cor_climate <- cor(scale(data$wrclmch),
+                   scale(data$ccrdprs))
+
+# correlation = 0.46
+
+data <- data %>% 
+  mutate(
+    clmcnrn = (scale(data$wrclmch) + scale(data$ccrdprs)) / 2
+  )
+
+## Factor analysis - political support index ---------------
+
+pol_data <- data %>% 
+  select(
+    trstplt,
+    trstprl,
+    stfgov
+  )
+
+cor_pol <- cor(pol_data)
+
+### Eigen values evaluation - n of dimensions to retain -----
+
+eigen_pol <- eigen(cor_pol) [[1]]
+
+
+### Index building ------------------------------------------
+
+data <- data %>% 
+  mutate(
+    pltsprt = (trstplt + trstprl + stfgov) / 3
+  )
+
+```
 
 ## Model choice and statistical justification
 
