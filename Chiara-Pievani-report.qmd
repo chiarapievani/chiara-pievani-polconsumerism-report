@@ -125,7 +125,7 @@ Moreover, both the baseline and the association between climate concern and part
 
 Age, education, gender and place of residence are included as control variables.
 
-## Results
+## Results and interpretation
 
 Since there are many predictors to consider, for better interpretation purposes and better assessment of the contribution of different sets of variables, the analysis develops incrementally.
 
@@ -165,7 +165,7 @@ table_mod1
 
 Already from this first models, we can see that, coherently with H1, political engagement is positively associated with participation in a product boycott.
 
-In particular, the relationship is stronger between respondents who participate in public demonstrations and those that take part in product boycotts. This means that, holding all other predictors constant, participation in demonstrations is associated with an increase of about 33% in the probability of boycotting a product.
+In particular, the relationship is stronger between respondents who participate in public demonstrations and those that take part in product boycotts. This means that, holding all other predictors constant, participation in demonstrations is associated with a maximum increase of about 33% in the probability of boycotting a product.
 
 This very strong association can be brought back to the fact that both boycotts and demonstrations are unconventional forms of political participation.
 
@@ -174,6 +174,12 @@ Regarding climate concern, individuals who express greater concern about climate
 Finally, for this model, the ICC confirms the importance of implementing a multilevel model: individuals with similar characteristics might have different probabilities of participating in a boycott depending on the country they live in.
 
 ### Model 2: full individual model with control variables
+
+While model 1 estimated participation in product boycotts keeping the political and environmental predictors separate, model 2 combines them into a single multilevel logistic regression model, including also control variables for age, education, gender and place of residence.
+
+This way it is now possible to interpret the coefficients as conditional to all the other variables, which are held constant, and then interpret them as independent effects. 
+
+Now it is possible to see whether, among two respondents who show the same level on all the political predictors, the individual who is more concerned about climate change is more likely to participate in a boycott, and viceversa.
 
 ```{r model 2}
 #| echo: false
@@ -195,8 +201,11 @@ table_mod2
 
 ```
 
+Indeed, holding all other predictors constant and comparing respondents from the same country, a one-unit increase in political interest is associated with a maximum increase in the probability of participating in a boycott of approximately 8.5%. This finding is still cohesive with H1.
 
+Moreover, with this model we can see that holding all political predictors and control variables constant, a one-unit increase in climate concern is associated with a maximum increase in the probability of participating in a boycott of about 9.7%.
 
+As far as the control variables are concerned, age has a negative coefficient, indicating that younger individuals might be more inclined to participate in a product boycott; same goes for respondents who have spent more years in education and for women (*gndr* = 1). Place of residence is not statistically significant, hence I cannot conclude that there is a significant difference among respondents from rural places or urban ones in their propensity to boycott.
 
 ### Model 3: full multilevel logistic regression model with random slopes and intercepts and interaction term
 
@@ -223,7 +232,7 @@ table_mod3
 
 
 
-## Interpretation and substantive insights
+## Substantive insights
 
 ## Limitations and reflection
 
