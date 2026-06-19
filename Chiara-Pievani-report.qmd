@@ -209,6 +209,11 @@ As far as the control variables are concerned, age has a negative coefficient, i
 
 ### Model 3: full multilevel logistic regression model with random slopes and intercepts and interaction term
 
+The final model builds on the previous one and it adds two fundamental items for further understanding of the main independent variables of the model. 
+
+The first one is an interaction term between climate concern and the centered left - right ideological scale, while the second one is the term that allows both the intercepts and the slopes for climate concern to vary across countries. 
+
+These two elements make it possible to see whether climate concern association with participation in boycotts differs based on respondents' ideological orientation and across different countries.
 
 ```{r model 3}
 #| echo: false
@@ -230,7 +235,17 @@ table_mod3
 
 ```
 
+As said in the section about data description and operationalization, the political orientation scale was reversed and mean centered, so that the value 0 now represents the center of the scale, while values below 0 represent right-wing positions and values above 0 left-wing positions. 
 
+With the interaction term, the coefficient for climate concern (which remained positive and statistically significant), now represents the associated increase with the probability in participating in a boycott for people who place themselves at the average of the ideological scale, which for this variable was originally around 5. 
+
+The coefficient of the interaction between climate concern and political orientation is also positive and statistically significant. This indicates that the association of climate concern with the dependent variable becomes stronger as individuals move towards higher values of the scale, hence as they are leaning more towards left ideology. 
+
+Attitudes towards climate change and political ideology reinforce one another in shaping political consumerism.
+
+The coefficients for all the other predictors overall remain unchanged compared to the previous model. 
+
+Finally, regarding the random effects section of the regression table, the variance of the random slope for climate concern (0.04, SD = )
 
 ## Substantive insights
 
@@ -250,4 +265,6 @@ Artificial Intelligence has been used as a coding support to:
 
 - Show log-odds coefficients instead of odd-ratios in the regression tables;
 
-- Commands for better outcomes in the rendered file.
+- Commands for better outcomes in the rendered file;
+
+- Help with linguistic revision.
