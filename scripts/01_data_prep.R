@@ -24,7 +24,7 @@ data <- ess %>%
     
     polintr = (5 - polintr), #reverse scaling for political interest so that high value = high interest
     pbldmna = factor (if_else(pbldmna == 1, 1, 0)), #recoding of levels -> 0 = No, 1 = Yes
-    lrscale = (10 - lrscale), #reverse scaling for left - right scale so that higher values indicate left people
+    lrscale_c = ((10 - lrscale) - mean(10 - lrscale)), #reverse scaling for left - right scale so that higher values indicate left people
     
     
     z_age = scale(agea) [,1],     #standardization of continuous variables

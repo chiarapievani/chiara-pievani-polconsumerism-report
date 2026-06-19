@@ -22,7 +22,7 @@ library(sjPlot)
 
 H1: Individuals with higher levels of political engagement are more likely to consider boycott as a form of political participation.
 
-H2: Individuals who think to have a higher impact on reducing climate change will be more likely to participate in boycotts.
+H2: Individuals who are more concerned with climate change will be more likely to participate in boycotts.
 
 H3: Climate concern is expected to have a higher association with boycotting among people that, on the ideology scale, place themselves on the left.
 
@@ -48,7 +48,7 @@ The independent variables considered are then:
 
 - Satisfaction with national government (*stfgov*), measured on a 0 - 10 scale, in which 0 = "Extremely dissatisfied" and 10 = "Extremely satisfied";
 
-- Self placement on left - right scale (*lrscale*) measured on a 0 - 10 scale. Compared to the original variable in the ESS dataset, the scale has been reversed, so that 0 = "Extreme right" and 10 = "Extreme left": this has been done to facilitate and make more straightforward the interpretation of the interaction stated in the previous section under H3;
+- Self placement on left - right scale (*lrscale*) measured on a 0 - 10 scale. Compared to the original variable in the ESS dataset, in the new variable *lrscale_c*, the scale has been reversed, so that 0 = "Extreme right" and 10 = "Extreme left", and then mean centred based on the new reversed scaling (mean = 5.04): this has been done to facilitate and make more straightforward the interpretation of the interaction stated in the previous section under H3, so that the value 0 now indicates placement in the centre of the ideological scale;
 
 - Worry about climate change (*wrclmch*) measured on a scale from 1 - 5 and 1 = "Not at all worried", while 5 = "Extremely worried";
 
@@ -117,7 +117,7 @@ This confirms that not considering the differences brought by countries to the m
 
 Eventually, the relationship that this analysis will attempt to look further into is:
 
-`bctprd  ~ polintr + pbldmna + pltsprt + lrscale * clmcnrn + (1 + clmcnrn|country) + z_age + z_edu + gndr +  rsdnc`
+`bctprd  ~ polintr + pbldmna + pltsprt + lrscale * clmcnrn + (1 + clmcnrn|cntry) + z_age + z_edu + gndr +  rsdnc`
 
 This includes then indicators for political engagement and orientation and environmental concern. An interaction term between ideological self-placement and climate concern is included to see whether the relationship between environmental concern and participation in boycotts changes across the left - right scale.
 
@@ -129,11 +129,99 @@ Age, education, gender and place of residence are included as control variables.
 
 Since there are many predictors to consider, for better interpretation purposes and better assessment of the contribution of different sets of variables, the analysis develops incrementally.
 
-Political and climate related variables are first considered separately to see the contributions of each context.
+Politics and climate related variables are first considered separately to see the contributions of each context.
 
 Then, a full model with all explanatory variables is estimated, with all control variables included.
 
 Finally, the interaction between ideological placement and climate concern and the random slope for climate concern are included to explore whether the effect of environmental attitudes varies across both individuals (based on their political orientation) and countries.
+
+### Model 1: separate model for predictors with random intercepts for countries
+
+The first step of the analysis is then to estimate logistic multilevel models for political and environmental predictors, keeping them separate, in order to evaluate in a first moment their independent association with boycott participation.
+
+```{r model 1a and 1b}
+#| echo: false
+
+# Model 1 - separate predictors ----------------------------------------
+
+model_1a <- glmer(
+  bctprd ~ polintr + pbldmna + pltsprt + lrscale_c + 
+  (1 | cntry), data = data,
+  family = binomial(link = "logit")
+  )
+
+model_1b <- glmer(
+  bctprd ~ clmcnrn + (1 | cntry),
+  data = data, family = binomial(link = "logit")
+)
+
+table_mod1 <- tab_model(model_1a, model_1b,
+          transform = NULL,
+          title = "Table 2. Regression coefficients for political and environmental predictors with random intercepts for countries")
+
+table_mod1
+
+```
+
+Already from this first models, we can see that, coherently with H1, political engagement is positively associated with participation in a product boycott.
+
+In particular, the relationship is stronger between respondents who participate in public demonstrations and those that take part in product boycotts. This means that, holding all other predictors constant, participation in demonstrations is associated with an increase of about 33% in the probability of boycotting a product.
+
+This very strong association can be brought back to the fact that both boycotts and demonstrations are unconventional forms of political participation.
+
+Regarding climate concern, individuals who express greater concern about climate change are more likely to say that they participated in a product boycott. This is consistent with the idea that product boycott is associated not only with political engagement, but also with ethical consumption.
+
+Finally, for this model, the ICC confirms the importance of implementing a multilevel model: individuals with similar characteristics might have different probabilities of participating in a boycott depending on the country they live in.
+
+### Model 2: full individual model with control variables
+
+```{r model 2}
+#| echo: false
+
+# Model 2 - all predictors + controls --------------------------
+
+model_2 <- glmer(
+  bctprd ~ polintr + pbldmna + pltsprt + lrscale_c + 
+  clmcnrn + (1 | cntry) +
+  z_age + z_edu + gndr + rsdnc, 
+  data = data, family = binomial(link = "logit")
+)
+
+table_mod2 <- tab_model(model_2,
+          transform = NULL,
+          title = "Table 3. Regression coefficients for all individual predictors with random intercepts for countries")
+
+table_mod2
+
+```
+
+
+
+
+### Model 3: full multilevel logistic regression model with random slopes and intercepts and interaction term
+
+
+```{r model 3}
+#| echo: false
+
+# Model 3 - random slopes and interaction --------------------
+
+model_3 <- glmer(
+  bctprd ~ polintr + pbldmna + pltsprt + lrscale_c + 
+  clmcnrn + (1 + clmcnrn | cntry) + lrscale_c:clmcnrn +
+  z_age + z_edu + gndr + rsdnc, 
+  data = data, family = binomial(link = "logit")
+)
+
+table_mod3 <- tab_model(model_3,
+                        transform = NULL,
+                        title = "Table 4. Regression coefficients for full multilevel logistic regression model with random slopes and intercepts for climate concern across countries and interaction between climate concern and ideological placement")
+
+table_mod3
+
+```
+
+
 
 ## Interpretation and substantive insights
 
@@ -150,5 +238,7 @@ Artificial Intelligence has been used as a coding support to:
 - Compute the eigenvalues for the operationalization;
 
 - Solve issues with the saving of the processed data file;
+
+- Show log-odds coefficients instead of odd-ratios in the regression tables;
 
 - Commands for better outcomes in the rendered file.
